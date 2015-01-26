@@ -108,7 +108,11 @@
 	var $proto = {}
 
 	$proto.$define = function(propName, descriptor) {
-		return isObj(propName) ? Object.defineProperties(this, propName) : Object.defineProperty(this, propName, descriptor)
+		if (isObj(propName)) {
+			return Object.defineProperties(this, propName)
+		} else if (isStr(propName) && isObj(descriptor)) {
+			return Object.defineProperty(this, propName, descriptor)
+		}
 	}
 
 	$proto.$watch = function(propName, fn) {
@@ -397,7 +401,7 @@
 
 	$proto.$each(function(method, name) {
 		Object.defineProperty(objProto, name, {
-			value: method,
+			value: method
 		})
 	})
 
@@ -440,13 +444,15 @@
 		return this
 	}
 
-	$elemProto.$mappingAll = function(avatar, descriptorObj) {
+	$elemProto.$mappingAll = function(avatar, descriptorObj, $unite) {
 		if (isObj(descriptorObj)) {
 			this.$setDirectiveAll(descriptorObj)
+		} else if (typeof descriptorObj === 'boolean') {
+			$unite = descriptorObj
 		}
 		var elems = this.$getElementsByDirective()
 		each(elems, function(elem) {
-			elem.$mapping(avatar, elem.$getDirective())
+			elem.$mapping(avatar, elem.$getDirective(), $unite)
 		})
 		return avatar
 	}

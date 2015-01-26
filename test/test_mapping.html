@@ -77,7 +77,8 @@
                 },
                 '#theLast': {
                     'textContent': 'name.last',
-                    'title': 'name.last'
+                    'title': 'name.last',
+                    'addEventListener': 'click'
                 },
             })
 
@@ -94,8 +95,9 @@
                 },
                 changelastname: function() {
                     data.name.last = this.value
-                }
-            })
+                },
+                click: ['click', function() {console.log(this.textContent)}, false]
+            }, true)
 
 
             setTimeout(function() {
@@ -106,7 +108,7 @@
             window.data1 = data
 
             //test mapping
-            /*var uniteObj = $('#container').$mapping({
+            var uniteObj = $('#container').$mapping({
                 content: {
                     text: '<p>test obj.mapping of unite'
                 },
@@ -116,7 +118,7 @@
             }, {
                 'html': 'content.text',
                 'css': 'style'
-            }, true)*/
+            }, true)
 
 
         })()
