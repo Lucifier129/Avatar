@@ -3,11 +3,13 @@
  * @author:Jade Gu
  * @date:2015.01.21
  */
-;(function(global, undefined) {
+;
+(function(global, undefined) {
 	//base
 	function calling(fn) {
+		var call = Function.prototype.call
 		return function() {
-			return Function.prototype.call.apply(fn, arguments)
+			return call.apply(fn, arguments)
 		}
 	}
 
@@ -18,8 +20,13 @@
 	var slice = calling(arrProto.slice)
 
 	function isType(type) {
+		type = '[object ' + type + ']'
 		return function(obj) {
-			return obj == null ? obj : toStr(obj) === '[object ' + type + ']'
+			if (obj == null) {
+				return obj
+			} else {
+				return toStr(obj) === type
+			}
 		}
 	}
 
@@ -82,9 +89,9 @@
 
 				if (deep && typeof value === 'object') {
 					var oldValue = target[key]
-
-					target[key] = typeof oldValue === 'object' ? oldValue : {}
-
+					if (typeof oldValue !== 'object') {
+						target[key] = {}
+					}
 					return extend(deep, target[key], value)
 				}
 
@@ -102,21 +109,39 @@
 
 
 	function parseChain(chain, separator) {
-		return isArr(chain) ? chain : isStr(chain) ? chain.trim().split(separator || '.') : []
+		if (isArr(chain)) {
+			return chain
+		} else if (isStr(chain)) {
+			return chain.trim().split(separator || '.')
+		} else {
+			return []
+		}
 	}
 
 	var $proto = {}
 
 	$proto.$define = function(propName, descriptor) {
 		if (isObj(propName)) {
-			return Object.defineProperties(this, propName)
+			Object.defineProperties(this, propName)
 		} else if (isStr(propName) && isObj(descriptor)) {
-			return Object.defineProperty(this, propName, descriptor)
+			Object.defineProperty(this, propName, descriptor)
 		}
+		return this
 	}
 
-	$proto.$watch = function(propName, fn) {
-		if (!isFn(fn)) {
+	$proto.$on = function(propName, fn) {
+
+		if (isObj(propName)) {
+			var obj = propName
+			var that = this
+			obj.$each(function(propName, fn) {
+				if (isFn(fn)) {
+					that.$on(propName, fn)
+				}
+			})
+		}
+
+		if (!isFn(fn) || !isStr(propName)) {
 			return this
 		}
 
@@ -139,7 +164,7 @@
 				},
 				set: function(v) {
 					var that = this
-					each(__events__[propName], function(callback) {
+					each(this['__events__'][propName], function(callback) {
 						callback.call(that, v, propName)
 					})
 					val = v
@@ -153,30 +178,46 @@
 
 	}
 
-	$proto.$unwatch = function(propName, fn) {
-		var __events__
+	$proto.$off = function(propName, fn) {
+		var __events__ = this['__events__']
 
-		if ('__events__' in this) {
-			__events__ = this['__events__']
-		} else {
-			this.$define('__events__', {
-				value: __events__ = {}
-			})
-		}
-
-		if (!(propName in __events__)) {
+		if (!isObj(__events__) || !(propName in __events__)) {
 			return this
 		}
 
-		if (fn === undefined) {
-			__events__[propName] = []
-		} else {
-			var index = __events__[propName].indexOf(fn)
-			if (index >= 0) {
-				__events__[propName].splice(index, 1)
+		if (isFn(propName)) {
+			fn = propName
+			__events__.$each(function(callbacks) {
+				var index = callbacks.indexOf(fn)
+				if (index >= 0) {
+					callbacks.splice(index, 1)
+				}
+			})
+		} else if (isStr(propName)) {
+			if (!isFn(fn)) {
+				__events__[propName] = []
+			} else {
+				var index = __events__[propName].indexOf(fn)
+				if (index >= 0) {
+					__events__[propName].splice(index, 1)
+				}
 			}
 		}
 
+		return this
+	}
+
+	$proto.$trigger = function(propName, data) {
+		if (!this['__events__']) {
+			return this
+		}
+		var callbacks = __events__[propName]
+		if (isArr(callbacks)) {
+			var that = this
+			callbacks.forEach(function(callback) {
+				callback.call(that, data, propName)
+			})
+		}
 		return this
 	}
 
@@ -211,7 +252,8 @@
 		if (isFn(callback)) {
 			var count = 0
 			iterator = function(prop) {
-				callback(result, prop, props.slice(0, ++count))
+				var currentChain = props.slice(0, ++count)
+				callback(result, prop, currentChain)
 				result = result[prop]
 				if (result == null) {
 					return result
@@ -261,14 +303,25 @@
 		if (len === 1) {
 			this[props[0]] = val
 		} else if (len > 1) {
-			var obj = this.$get(props.slice(0, len - 1), function(currentObj, currentProp) {
+			var lastIndex = len - 1
+			var propName = props[lastIndex]
+			var obj = this.$get(props.slice(0, lastIndex), function(currentObj, currentProp) {
 				if (currentObj[currentProp] == null) {
 					currentObj[currentProp] = {}
 				}
 			})
-			obj[props[len - 1]] = val
+			obj[propName] = val
 		}
 
+		return this
+	}
+
+	$propto.$delete = function(propChain) {
+		var props = parseChain(propChain)
+		var lastIndex = props.length - 1
+		var obj = this.$get(props.slice(0, lastIndex))
+		var propName = props[lastIndex]
+		delete obj[propName]
 		return this
 	}
 
@@ -392,7 +445,7 @@
 
 			$set(selfPropChain, val)
 
-			target.$watch(propName, function(v) {
+			target.$on(propName, function(v) {
 				$set(selfPropChain, v)
 			})
 		})
