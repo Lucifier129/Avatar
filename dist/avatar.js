@@ -139,13 +139,13 @@
 					that.$on(propName, fn)
 				}
 			})
+			return this
 		}
 
 		if (!isFn(fn) || !isStr(propName)) {
 			return this
 		}
 
-		var val = this[propName]
 		var __events__
 
 		if ('__events__' in this) {
@@ -157,6 +157,7 @@
 		}
 
 		if (!__events__[propName]) {
+			var val = this[propName]
 			__events__[propName] = []
 			this.$define(propName, {
 				get: function() {
@@ -182,6 +183,13 @@
 		var __events__ = this['__events__']
 
 		if (!isObj(__events__) || !(propName in __events__)) {
+			return this
+		}
+
+		if (!propName && !fn) {
+			this.$define('__events__', {
+				value: {}
+			})
 			return this
 		}
 
@@ -211,7 +219,7 @@
 		if (!this['__events__']) {
 			return this
 		}
-		var callbacks = __events__[propName]
+		var callbacks = this['__events__'][propName]
 		if (isArr(callbacks)) {
 			var that = this
 			callbacks.forEach(function(callback) {
@@ -316,7 +324,7 @@
 		return this
 	}
 
-	$propto.$delete = function(propChain) {
+	$proto.$delete = function(propChain) {
 		var props = parseChain(propChain)
 		var lastIndex = props.length - 1
 		var obj = this.$get(props.slice(0, lastIndex))
