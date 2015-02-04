@@ -1,7 +1,7 @@
 /**
  * tools.js
  */
-var app = app || {}
+var app = app || {};
 
 (function(app) {
 
@@ -23,11 +23,19 @@ var app = app || {}
 		'isReg': 'RegExp'
 	}
 
-	classType.$each(function(type, methodName) {
-		tools[methodName] = isType(type)
-	})
+	! function (classType) {
+		for (var key in classType) {
+			if (classType.hasOwnProperty(key)) {
+				tools[key] = isType(classType[key])
+			}
+		}
+	}(classType)
 
 	tools.$ = function(selector, context) {
+		return (context || document).querySelector(selector)
+	}
+
+	tools.$all = function(selector, context) {
 		return (context || document).querySelectorAll(selector)
 	}
 
@@ -44,10 +52,10 @@ var app = app || {}
 			var type = e.type
 			var events = eventStore[type]
 
-			events.$each(function(entry) {
-				var elems = tools.$(entry.selector)
+			events.forEach(function(entry) {
+				var elems = tools.$all(entry.selector)
 				var isMatch = Array.prototype.indexOf.call(elems, target)
-				if (isMatch) {
+				if (isMatch >= 0) {
 					entry.callback.call(target, e)
 				}
 			})
@@ -55,19 +63,19 @@ var app = app || {}
 
 		return function(type, selector, callback) {
 
-			if (typeof type !== 'string' || typeof selector !== 'string' || typeof callback !== 'function') {
+			if (!this.isStr(type) || !this.isStr(selector) || !this.isFn(callback)) {
 				return
 			}
 
 			if (!eventStore[type]) {
 				eventStore[type] = []
-				tools.$on(document, type, trigger, true)
+				this.$on(document, type, trigger, false)
 			}
 			eventStore[type].push({
 				selector: selector,
 				callback: callback
 			})
 		}
-	})
+	}())
 
 }(app));
