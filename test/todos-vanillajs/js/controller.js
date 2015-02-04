@@ -124,11 +124,10 @@ var app = app || {};
 
 		tools.$listen('dblclick', '#todo-list label', function() {
 			var todoElem = this.parentNode.parentNode
-			var label = tools.$('label', todoElem)
 			var edit = tools.$('.edit', todoElem)
 
 			todoElem.classList.add('editing')
-			edit.value = label.textContent
+			edit.value = this.textContent
 			edit.onblur = blur
 			edit.focus()
 		})
