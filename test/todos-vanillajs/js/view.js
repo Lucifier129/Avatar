@@ -23,7 +23,7 @@ var app = app || {};
 
 	TodoList.prototype = {
 		template: todoTemplate,
-		complie: function(todo) {
+		compile: function(todo) {
 			return this.template
 				.replace('{{ id }}', todo.id || '')
 				.replace('{{ completed }}', todo.completed ? 'completed' : '')
@@ -34,7 +34,7 @@ var app = app || {};
 		render: function(todos) {
 			var content = ''
 			todos.forEach(function(todo) {
-				content += this.complie(todo)
+				content += this.compile(todo)
 			}.bind(this))
 			tools.$(this.id).innerHTML = content
 		}
